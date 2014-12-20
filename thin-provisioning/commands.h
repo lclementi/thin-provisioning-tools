@@ -9,6 +9,7 @@ namespace thin_provisioning {
 	extern base::command thin_check_cmd;
 	extern base::command thin_delta_cmd;
 	extern base::command thin_dump_cmd;
+	extern base::command thin_send_cmd;
 	extern base::command thin_metadata_size_cmd;
 	extern base::command thin_restore_cmd;
 	extern base::command thin_repair_cmd;

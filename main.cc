@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 	app.add_cmd(thin_provisioning::thin_check_cmd);
 	app.add_cmd(thin_provisioning::thin_delta_cmd);
 	app.add_cmd(thin_provisioning::thin_dump_cmd);
+	app.add_cmd(thin_provisioning::thin_send_cmd);
 	app.add_cmd(thin_provisioning::thin_metadata_size_cmd);
 	app.add_cmd(thin_provisioning::thin_restore_cmd);
 	app.add_cmd(thin_provisioning::thin_repair_cmd);
