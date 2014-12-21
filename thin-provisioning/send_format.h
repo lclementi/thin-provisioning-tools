@@ -22,11 +22,12 @@
 #include "emitter.h"
 
 #include <iosfwd>
+#include <fstream>
 
 //----------------------------------------------------------------
 
 namespace thin_provisioning {
-	emitter::ptr create_send_emitter(std::ostream &out, uint64_t devid);
+	emitter::ptr create_send_emitter(std::string const &datapath, std::ostream &out, uint64_t devid);
 }
 
 //----------------------------------------------------------------

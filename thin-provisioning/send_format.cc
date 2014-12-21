@@ -18,7 +18,6 @@
 
 #include "send_format.h"
 
-#include "base/indented_stream.h"
 #include "base/xml_utils.h"
 
 #include <boost/lexical_cast.hpp>
@@ -28,6 +27,12 @@
 #include <sstream>
 #include <stdexcept>
 #include <string.h>
+
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
 
 using namespace std;
 using namespace thin_provisioning;
@@ -43,10 +48,18 @@ namespace {
 	//------------------------------------------------
 	class send_emitter : public emitter {
 	public:
-		send_emitter(ostream &out, uint64_t device_id)
-		: out_(out) {
-			deviceid_ = device_id;
-			emitting = false;
+		send_emitter(string const &datapath, ostream &out, uint64_t device_id)
+			: out_(out),
+			  deviceid_(device_id),
+			  emitting(false) {
+			//deviceid_ = device_id;
+			//emitting = false;
+			datapath_.open(datapath.c_str(), ios::in|ios::binary|ios::ate);
+			if (!datapath_.is_open()) {
+				ostringstream out;
+				out << __FUNCTION__ << ": file '" << datapath << "' doesn't exist";
+				throw runtime_error(out.str());
+			}
 		}
 
 		void begin_superblock(string const &uuid,
@@ -55,6 +68,7 @@ namespace {
 				      uint32_t data_block_size,
 				      uint64_t nr_data_blocks,
 				      boost::optional<uint64_t> metadata_snap) {
+			data_block_size_ = data_block_size;
 		}
 
 		void end_superblock() {
@@ -86,28 +100,34 @@ namespace {
 
 		void range_map(uint64_t origin_begin, uint64_t data_begin, uint32_t time, uint64_t len) {
 			if (emitting) {
-				out_ << "<range_mapping origin_begin=\"" << origin_begin << "\""
-				     << " data_begin=\"" << data_begin << "\""
-				     << " length=\"" << len << "\""
-				     << " time=\"" << time << "\""
-				     << "/>" << endl;
+				write_data_block(origin_begin, data_begin, len);
 			}
 		}
 
 		void single_map(uint64_t origin_block, uint64_t data_block, uint32_t time) {
 			if (emitting) {
-
-				out_ << "<single_mapping origin_block=\"" << origin_block << "\""
-				     << " data_block=\"" << data_block << "\""
-				     << " time=\"" << time << "\""
-				     << "/>" << endl;
+				write_data_block(origin_block, data_block, 1);
 			}
 		}
 
+
 	private:
-		indented_stream out_;
+		ostream &out_;
+		ifstream datapath_;
+		uint32_t data_block_size_;
 		uint64_t deviceid_;
 		bool emitting;
+
+
+		void write_data_block(uint64_t origin_begin, uint64_t data_begin, uint64_t len) {
+			uint64_t buf_size = len * data_block_size_ * 512;
+			char *datablock = new char[buf_size];
+			datapath_.seekg(data_begin * data_block_size_ * 512);
+			datapath_.read(datablock, buf_size);
+			out_.write(datablock, buf_size);
+			delete []datablock;
+		}
+
 	};
 
 	//------------------------------------------------
@@ -188,9 +208,9 @@ namespace {
 //----------------------------------------------------------------
 
 tp::emitter::ptr
-tp::create_send_emitter(ostream &out, uint64_t devid)
+tp::create_send_emitter(string const &datapath, ostream &out, uint64_t devid)
 {
-	return emitter::ptr(new send_emitter(out, devid));
+	return emitter::ptr(new send_emitter(datapath, out, devid));
 }
 
 //----------------------------------------------------------------

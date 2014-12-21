@@ -38,11 +38,11 @@ struct flags {
 };
 
 namespace {
-	int send_(string const &path, ostream &out, struct flags &flags){
+	int send_(string const &metadatapath, string const &datapath, ostream &out, struct flags &flags){
 		emitter::ptr e;
 		try {
 
-			metadata::ptr md(new metadata(path, 0));
+			metadata::ptr md(new metadata(metadatapath, 0));
 
 			e = create_xml_emitter(out);
 
@@ -60,8 +60,9 @@ namespace {
 		// maker end of devid section
 		out.put('\0');
 		try {
-			metadata::ptr md1(new metadata(path, 0));
-			e = create_send_emitter(out, flags.devid);
+			//TODO  fix recreation of same object
+			metadata::ptr md1(new metadata(metadatapath, 0));
+			e = create_send_emitter(datapath, out, flags.devid);
 			metadata_dump(md1, e, false);//flags.repair);
 		} catch (std::exception &e) {
                         cerr << "aaaa" << e.what() << endl;
@@ -70,16 +71,16 @@ namespace {
 		return 0;
 	}
 
-	int send(string const &path, char const *output, struct flags &flags){
+	int send(string const &mdatapath, string const &datapath,char const *output, struct flags &flags){
 		if (output) {
 			ofstream out(output);
-			return send_(path, out, flags);
+			return send_(mdatapath, datapath, out, flags);
 		} else
-			return send_(path, cout, flags);
+			return send_(mdatapath, datapath, cout, flags);
 	}
 
 	void usage(ostream &out, string const &cmd) {
-		out << "Usage: " << cmd << " [options] {device|file}" << endl
+		out << "Usage: " << cmd << " [options] {metadata_device} {data_device}" << endl
 		    << "Options:" << endl
 		    << "  {-h|--help}" << endl
 		    << "  {-d|--devid} [block#]" << endl
@@ -137,12 +138,12 @@ int thin_send_main(int argc, char **argv)
 		}
 	}
 
-	if (argc == optind) {
-		cerr << "No input file provided." << endl;
+	if (argc == optind || argc == optind + 1) {
+		cerr << "You need to specify two devices: metadata device and data device." << endl;
 		usage(cerr, basename(argv[0]));
 		return 1;
 	}
-	return send(argv[optind], output, flags);
+	return send(argv[optind], argv[optind + 1], output, flags);
 }
 
 base::command thin_provisioning::thin_send_cmd("thin_send", thin_send_main);
